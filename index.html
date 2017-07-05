@@ -1,0 +1,370 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Ship As Object</title>
+
+    <!-- Bootstrap Core CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Three script -->
+    <script src="js/build/three.min.js"></script>
+    <script src='js/OrbitControls.js'></script>
+    
+    <!-- jQuery Version 1.11.1 -->
+    <script src="js/jquery.js"></script>
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src="js/bootstrap.min.js"></script> 
+	
+    <!-- D3JavaScript -->
+    <script src="https://d3js.org/d3.v4.min.js"></script> 
+    
+    <!-- GUI -->
+    <script src="js/dat.gui.js"></script>
+    
+    
+	
+		
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-inverse" role="navigation">
+        <div class="container">
+            <!-- Add  the <div>[Something]</div> structure for each header in the navbar-->
+            <div class="navbar-header">               
+                <a class="navbar-brand" href="index.html">Ship as an object</a>
+            </div>
+            <div class="navbar-header">
+                <a class="navbar-brand" href="about.html">About</a>
+            </div>
+            <!-- This is for the right part of the navbar. Reserved for Shiplab logo-->
+            <div class="nav navbar-nav navbar-right">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="http://www.shiplab.hials.org/"><img src="barquinho.png" style="height:150%"> 
+                    </a>                    
+                </div>
+            </div>
+        </div>
+    </nav>
+
+
+    <!-- Page Content -->
+    
+    <!-- Container creates the space -->
+    <div class="container">
+        
+        <!-- Row creates horizontal groups of columns -->
+        <div class="row">
+            
+            <!-- choose horizontal layout in https://www.w3schools.com/bootstrap/bootstrap_grid_examples.asp-->
+            
+            <!-- No divisions in page. Only 1 column. -->
+             <div class="col-md-12 text-center">
+                <h2>Ship as an object</h2>
+
+            </div>  
+            
+            <div class="col-md-12 text-left">
+                <h2>Input</h2>
+                <textarea id="myTextArea" style="width:100%; height:300px"></textarea>
+                <button onclick="updateValues()">Update values</button>
+            </div>
+            <div class="col-md-12 text-left">
+                <h2>Output</h2>
+                <pre id="json"></pre>
+                <h3>Methods</h3>
+                <h4>Weight</h4>
+                <p>Total Weight Lightship: <span id="WeightLight"></span></p>
+                <p>Total Weight Condition 1: <span id="WeightCond1"></span></p>
+                <p>Total Weight Condition 2: <span id="WeightCond2"></span></p>
+                
+                <h4>CoG</h4>
+                <p>CoG Lightship: [<span id="cogax"></span>,<span id="cogay"></span>,<span id="cogaz"></span>]</p>
+                <p>CoG Condition 1: [<span id="cogax1"></span>,<span id="cogay1"></span>,<span id="cogaz1"></span>]</p>
+                <p>CoG Condition 2: [<span id="cogax2"></span>,<span id="cogay2"></span>,<span id="cogaz2"></span>]</p>
+                
+            </div>
+            <div id ="3d" class="col-md-12 text-left">
+                <style></style>
+                <br>
+                <br>
+            </div>
+        
+        </div>
+       
+            
+       
+        
+
+    </div>
+    
+   
+   <!-- Load ship configuration --> 
+    <script src="PX121_ship.js"></script>
+    
+    <script>
+		//"use strict";
+        
+        //Good to use a three loader, because that is compatible with THREE.LoadingManager
+		let loader = new THREE.FileLoader();
+		loader.load("PX121_DBB.csv", function(res) {
+			let data = d3.csvParse(res);
+			ship.ObjectsData = data.filter(d=>d.Name!==undefined);
+		});
+        loader.load("PX121_decks.csv", function(res) {
+            ship.VesselData.Decks = d3.csvParse(res).filter(d=>d.Name!==undefined)
+            createscene();
+        });
+        
+		/*d3.csv("PX121_DBB.csv", function(data) {
+		ship.ObjectsData = data;
+		
+		})*/
+            
+        // using JSON.stringify pretty print capability:
+        var str = JSON.stringify(ship, undefined, 4);
+
+        // display pretty printed object in text area:
+        document.getElementById('myTextArea').innerHTML = str;
+
+        // Function for updating values
+        function updateValues() 
+        {
+            
+            var ugly = document.getElementById('myTextArea').value;
+            ShipUp = JSON.parse(ugly);
+            var pretty = JSON.stringify(ShipUp, undefined, 4);
+            Object.assign(ship,ShipUp);
+            document.getElementById('myTextArea').value = pretty;  
+            document.getElementById("json").innerHTML = JSON.stringify(ShipUp, undefined, 4);
+            
+        }
+        
+        //Methods
+        
+        //Cost Function
+        let WeightLight = 0;
+        let WeightCond1 = 0;
+        let WeightCond2 = 0;
+        ship.Methods.WeightFn = function(){
+            for (let i = 0; i < ship.ObjectsData.length; i++){
+                let e = ship.ObjectsData[i];
+                //Set unitary weight
+                let CostLight = e.FixedWeight_lightships
+                let CostCond1 = e.VariableWeight_cond1
+                let CostCond2 = e.VariableWeight_cond2
+                //Set total cost Fn
+                WeightLight = +WeightLight + +CostLight
+                WeightCond1 = +WeightCond1 + +CostCond1
+                WeightCond2 = +WeightCond2 + +CostCond2
+                //Set WeigthTot for HTML
+                document.getElementById("WeightLight").innerHTML = WeightLight
+                document.getElementById("WeightCond1").innerHTML = WeightCond1
+                document.getElementById("WeightCond2").innerHTML = WeightCond2
+                
+            }
+                
+        }
+        let cogax = 0;
+        let cogay = 0;
+        let cogaz = 0;
+        
+        let cogax1 = 0;
+        let cogay1 = 0;
+        let cogaz1 = 0;
+        
+        let cogax2 = 0;
+        let cogay2 = 0;
+        let cogaz2 = 0;
+        
+        ship.Methods.CoGFn = function(){
+            for (let i = 0; i < ship.ObjectsData.length; i++){
+                let e = ship.ObjectsData[i];
+                //Lightship
+                //Set unitary Weight*Position
+                var cogwx = (e.xFwd-e.xAft) * e.FixedWeight_lightships
+                var cogwy = e.yCentre * e.FixedWeight_lightships
+                var cogwz = e.zBase * e.FixedWeight_lightships
+                //Add all objects
+                cogax = +cogwx + +cogax
+                cogay = +cogwy + +cogay
+                cogaz = +cogwz + +cogaz
+                document.getElementById("cogax").innerHTML = cogax
+                document.getElementById("cogay").innerHTML = cogay
+                document.getElementById("cogaz").innerHTML = cogaz
+                
+                //Cond1
+                //Set unitary Weight*Position
+                var cogwx1 = (e.xFwd-e.xAft) * e.VariableWeight_cond1
+                var cogwy1 = e.yCentre * e.VariableWeight_cond1
+                var cogwz1 = e.zBase * e.VariableWeight_cond1
+                //Add all objects
+                cogax1 = +cogwx1 + +cogax1
+                cogay1 = +cogwy1 + +cogay1
+                cogaz1 = +cogwz1 + +cogaz1
+                document.getElementById("cogax1").innerHTML = cogax1
+                document.getElementById("cogay1").innerHTML = cogay1
+                document.getElementById("cogaz1").innerHTML = cogaz1
+                
+                //Cond2
+                //Set unitary Weight*Position
+                var cogwx2 = (e.xFwd-e.xAft) * e.VariableWeight_cond2
+                var cogwy2 = e.yCentre * e.VariableWeight_cond2
+                var cogwz2 = e.zBase * e.VariableWeight_cond2
+                //Add all objects
+                cogax2 = +cogwx2 + +cogax2
+                cogay2 = +cogwy2 + +cogay2
+                cogaz2 = +cogwz2 + +cogaz2
+                document.getElementById("cogax2").innerHTML = cogax2
+                document.getElementById("cogay2").innerHTML = cogay2
+                document.getElementById("cogaz2").innerHTML = cogaz2
+            }
+            
+        }
+        
+
+        // Create scene+
+        function createscene(){
+        scene = new THREE.Scene()        
+
+            // Set renderer
+            renderer = new THREE.WebGLRenderer()
+            renderer.setPixelRatio(window.devicePixelRatio);
+            // get the div that will hold the renderer
+            var container = document.getElementById('3d');
+            w3d = container.offsetWidth
+            renderer.setSize(w3d, window.innerHeight / window.innerWidth * w3d)
+            // add the renderer to the div
+            container.appendChild(renderer.domElement);
+
+            // Creating Hull
+            var geometryH = new THREE.BoxBufferGeometry(1, 1, 1);
+            geometryH.translate(0.5,0,0.5);			
+
+            var materialH = new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true})
+            var hull = new THREE.Mesh(geometryH, materialH)
+            hull.scale.set(ship.VesselData.LOA, ship.VesselData.BOA, ship.VesselData.D);
+
+            scene.add(hull)
+
+            function randomColor() {
+                let r = Math.round(Math.random()*0xff);
+                let g = Math.round(Math.random()*0xff);
+                let b = Math.round(Math.random()*0xff);
+                return ((r<<16)|(g<<8)|b);
+            }
+
+            //Visualize decks (from CSV):
+            var decks = new THREE.Group();
+            //decks.scale.set(ship.LOA, ship.BOA, 1);
+            let deckGeom = new THREE.PlaneBufferGeometry(1,1);
+            deckGeom.translate(0.5,0,0);
+            for (let i = 0; i < ship.VesselData.Decks.length; i++) {
+                let deck = new THREE.Mesh(deckGeom,
+                    new THREE.MeshPhongMaterial({color: 0x000000/*randomColor()*/, transparent: true, opacity: 0.5, side: THREE.DoubleSide}));
+                let d = ship.VesselData.Decks[i];
+                deck.name = d.Name;
+                deck.scale.set(d.xFore-d.xAft, ship.VesselData.BOA, 1);
+                deck.position.set(d.xAft, 0, d.zFloor);
+                decks.add(deck);
+            }
+            scene.add(decks);
+
+            //Creating objects
+            function stripName(s) {
+                return s.replace(/[0-9]/g, "");		
+            }
+            let materials = {};
+            let objects = new THREE.Group();
+            let geom = new THREE.BoxBufferGeometry(1,1,1);
+            geom.translate(0.5,0,0.5);
+            //let mat = new THREE.MeshPhongMaterial({color: "blue", transparent: true, opacity: 0.3});
+            for (let i = 0; i < ship.ObjectsData.length; i++) {
+                let e = ship.ObjectsData[i];
+                let mat;
+                let name = stripName(e.Name);
+                if (materials[name] !== undefined) {
+                    mat = materials[name];
+                } else {
+                    mat = new THREE.MeshPhongMaterial({color: randomColor(), transparent: true, opacity: 0.5});
+                    materials[name] = mat;
+                }
+
+                //mat.needsUpdate = true;
+                let m = new THREE.Mesh(geom, mat);
+                m.position.set(e.xAft, e.yCentre, e.zBase);
+                m.scale.set(e.xFwd-e.xAft, e.ySize, e.zHeight);
+                objects.add(m);
+            }
+            scene.add(objects);
+
+            // Set camera
+            camera = new THREE.PerspectiveCamera(50,window.innerWidth/window.innerHeight, 1,10000)
+            camera.position.set(0.7*ship.VesselData.LOA, 0.7*ship.VesselData.LOA, 0.7*ship.VesselData.LOA);
+            camera.up.set(0,0,1);
+            var controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.target = new THREE.Vector3(ship.VesselData.LOA/2,0,0);
+            controls.update();
+            
+
+            //Add lights:
+            scene.add(new THREE.AmbientLight(0xffffff,0.5));
+            scene.add(function() {
+                let sun = new THREE.DirectionalLight(0xffffff,1.5);
+                sun.position.set(1,1,1);
+                return sun;
+            }());
+
+            //Add grid (as reference for draft and sizes):
+            scene.add(function(){
+            let size = 200*Math.ceil(ship.VesselData.LOA/100);
+            let segs = size/10;
+            let gh = new THREE.GridHelper(size,segs);
+            gh.rotation.x = -0.5*Math.PI;
+            return gh;
+            }());
+
+            // Rendering function
+            function animate() {
+                requestAnimationFrame(animate)
+                renderer.render(scene, camera)
+                renderer.setClearColor(0xA9CCE3, 1)
+			
+            }
+            animate()
+            ship.Methods.WeightFn()
+            ship.Methods.CoGFn()
+		   
+	   }
+        
+    </script>
+    <!-- /.container -->
+    
+    
+    
+    <!-- Insert own scripts here -->
+      
+
+</body>
+
+</html>
