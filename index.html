@@ -209,9 +209,7 @@
                 cogax = +cogwx + +cogax
                 cogay = +cogwy + +cogay
                 cogaz = +cogwz + +cogaz
-                document.getElementById("cogax").innerHTML = cogax
-                document.getElementById("cogay").innerHTML = cogay
-                document.getElementById("cogaz").innerHTML = cogaz
+                
                 
                 //Cond1
                 //Set unitary Weight*Position
@@ -222,9 +220,7 @@
                 cogax1 = +cogwx1 + +cogax1
                 cogay1 = +cogwy1 + +cogay1
                 cogaz1 = +cogwz1 + +cogaz1
-                document.getElementById("cogax1").innerHTML = cogax1
-                document.getElementById("cogay1").innerHTML = cogay1
-                document.getElementById("cogaz1").innerHTML = cogaz1
+                
                 
                 //Cond2
                 //Set unitary Weight*Position
@@ -235,10 +231,37 @@
                 cogax2 = +cogwx2 + +cogax2
                 cogay2 = +cogwy2 + +cogay2
                 cogaz2 = +cogwz2 + +cogaz2
-                document.getElementById("cogax2").innerHTML = cogax2
-                document.getElementById("cogay2").innerHTML = cogay2
-                document.getElementById("cogaz2").innerHTML = cogaz2
+                
             }
+            let cogaxt = cogax / WeightLight
+            let cogayt = cogay / WeightLight
+            let cogazt = cogaz / WeightLight
+            cogaxt = cogaxt.toFixed(2)
+            cogayt = cogayt.toFixed(2)
+            cogazt = cogazt.toFixed(2)
+            document.getElementById("cogax").innerHTML = cogaxt
+            document.getElementById("cogay").innerHTML = cogayt
+            document.getElementById("cogaz").innerHTML = cogazt
+            
+            let cogax1t = cogax1 / WeightCond1
+            let cogay1t = cogay1 / WeightCond1
+            let cogaz1t = cogaz1 / WeightCond1
+            cogax1t = cogax1t.toFixed(2)
+            cogay1t = cogay1t.toFixed(2)
+            cogaz1t = cogaz1t.toFixed(2)
+            document.getElementById("cogax1").innerHTML = cogax1t
+            document.getElementById("cogay1").innerHTML = cogay1t
+            document.getElementById("cogaz1").innerHTML = cogaz1t
+            
+            let cogax2t = cogax2 / WeightCond2
+            let cogay2t = cogay2 / WeightCond2
+            let cogaz2t = cogaz2 / WeightCond2
+            cogax2t = cogax2t.toFixed(2)
+            cogay2t = cogay2t.toFixed(2)
+            cogaz2t = cogaz2t.toFixed(2)
+            document.getElementById("cogax2").innerHTML = cogax2t
+            document.getElementById("cogay2").innerHTML = cogay2t
+            document.getElementById("cogaz2").innerHTML = cogaz2t
             
         }
         
@@ -256,6 +279,10 @@
             renderer.setSize(w3d, window.innerHeight / window.innerWidth * w3d)
             // add the renderer to the div
             container.appendChild(renderer.domElement);
+            
+            //Define vessel object
+            vessel3D = new THREE.Group();
+            vessel3D.position.z = -ship.VesselData.T;
 
             // Creating Hull
             var geometryH = new THREE.BoxBufferGeometry(1, 1, 1);
@@ -265,7 +292,7 @@
             var hull = new THREE.Mesh(geometryH, materialH)
             hull.scale.set(ship.VesselData.LOA, ship.VesselData.BOA, ship.VesselData.D);
 
-            scene.add(hull)
+            vessel3D.add(hull)
 
             function randomColor() {
                 let r = Math.round(Math.random()*0xff);
@@ -281,19 +308,20 @@
             deckGeom.translate(0.5,0,0);
             for (let i = 0; i < ship.VesselData.Decks.length; i++) {
                 let deck = new THREE.Mesh(deckGeom,
-                    new THREE.MeshPhongMaterial({color: 0x000000/*randomColor()*/, transparent: true, opacity: 0.5, side: THREE.DoubleSide}));
+                    new THREE.MeshPhongMaterial({color: 0xcccccc/*randomColor()*/, transparent: true, opacity: 0.5, side: THREE.DoubleSide}));
                 let d = ship.VesselData.Decks[i];
                 deck.name = d.Name;
                 deck.scale.set(d.xFore-d.xAft, ship.VesselData.BOA, 1);
                 deck.position.set(d.xAft, 0, d.zFloor);
                 decks.add(deck);
             }
-            scene.add(decks);
+            vessel3D.add(decks);
 
             //Creating objects
             function stripName(s) {
                 return s.replace(/[0-9]/g, "");		
             }
+            
             let materials = {};
             let objects = new THREE.Group();
             let geom = new THREE.BoxBufferGeometry(1,1,1);
@@ -310,13 +338,14 @@
                     materials[name] = mat;
                 }
 
-                //mat.needsUpdate = true;
                 let m = new THREE.Mesh(geom, mat);
                 m.position.set(e.xAft, e.yCentre, e.zBase);
                 m.scale.set(e.xFwd-e.xAft, e.ySize, e.zHeight);
                 objects.add(m);
             }
-            scene.add(objects);
+            vessel3D.add(objects);
+            
+            scene.add(vessel3D)
 
             // Set camera
             camera = new THREE.PerspectiveCamera(50,window.innerWidth/window.innerHeight, 1,10000)
@@ -337,11 +366,11 @@
 
             //Add grid (as reference for draft and sizes):
             scene.add(function(){
-            let size = 200*Math.ceil(ship.VesselData.LOA/100);
-            let segs = size/10;
-            let gh = new THREE.GridHelper(size,segs);
-            gh.rotation.x = -0.5*Math.PI;
-            return gh;
+                let size = 200*Math.ceil(ship.VesselData.LOA/100);
+                let segs = size/10;
+                let gh = new THREE.GridHelper(size,segs);
+                gh.rotation.x = -0.5*Math.PI;
+                return gh;
             }());
 
             // Rendering function
@@ -354,6 +383,8 @@
             animate()
             ship.Methods.WeightFn()
             ship.Methods.CoGFn()
+            
+
 		   
 	   }
         
